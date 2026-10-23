@@ -71,6 +71,22 @@
   .row { display: flex; gap: 8px; flex-wrap: wrap; }
   .warn { color: var(--warn); font-size: 13px; margin: 0; }
 
+  .redial-btn { background: var(--soft); color: var(--accent); border: 0; padding: 12px; font-weight: 700; font-size: 16px; }
+  .redial-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding-top: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    box-shadow: 0 -6px 20px rgb(0 0 0 / .08);
+  }
+  .redial-inner { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .redial-msg { font-weight: 700; font-size: 17px; }
+  .redial-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .redial-actions .dial { padding: 12px; font-size: 16px; }
+  .redial-actions .ghost { padding: 12px; font-size: 16px; }
+  body.has-bar { padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
   .add input { flex: 1 1 140px; min-width: 0; padding: 10px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
   .add .ghost { padding: 10px 14px; }
 
@@ -100,6 +116,15 @@
   </section>
 
   <section class="card tips">
+    <h2>連續重撥</h2>
+    <ul>
+      <li>按「連續重撥」後，每次掛斷回到這個網頁，會倒數 5 秒自動再撥一次，畫面下方可以隨時按「停止」。</li>
+      <li>iPhone 每次撥號前都會跳出確認視窗，要按一下「撥打」才會打出去，這一步沒辦法省略。</li>
+      <li>一通電話講超過 3 分鐘，就當作已經接通，不會再重撥。最多連續撥 50 次。</li>
+    </ul>
+  </section>
+
+  <section class="card tips">
     <h2>讓電話自動開擴音</h2>
     <ul>
       <li>打開「設定」→「輔助使用」→「觸控」→「通話音訊傳送」，選「擴音」。</li>
@@ -120,6 +145,16 @@
     <p class="note">設定只存在這支手機的瀏覽器裡。電話號碼請以航空公司官網為準。</p>
   </section>
 </main>
+
+<div class="redial-bar" id="redial-bar" hidden>
+  <div class="redial-inner">
+    <div class="redial-msg" id="redial-msg" role="status" aria-live="polite"></div>
+    <div class="redial-actions" id="redial-actions">
+      <a class="dial" id="redial-now" href="#">立即重撥</a>
+      <button class="ghost" type="button" id="redial-stop">停止</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const DEFAULTS = [
@@ -221,6 +256,7 @@ function renderEntry(entry, index) {
   return el("section", { class: "card" },
     el("div", { class: "head" }, el("span", { class: "name", text: entry.name }), el("span", { class: "number", text: formatNumber(entry.number) })),
     dial,
+    el("button", { class: "redial-btn", type: "button", text: "連續重撥", onclick: () => startRedial(entry) }),
     el("div", { class: "readout" }, code, copyBtn),
     el("div", { class: "steps-label", text: "接通後自動按鍵" }),
     entry.steps.length ? steps : el("p", { class: "note", text: "目前沒有設定步驟，撥通後由你自己按。" }),
@@ -243,6 +279,84 @@ document.getElementById("add-btn").addEventListener("click", () => {
   name.value = ""; number.value = "";
   save(); render();
 });
+
+// ---------- 連續重撥 ----------
+const REDIAL_DELAY = 5;        // 回到網頁後幾秒重撥
+const CONNECTED_MINUTES = 3;   // 一通講超過幾分鐘就當作接通，不再重撥
+const MAX_ATTEMPTS = 50;
+let redial = null;             // { entry, attempts, leftAt, timer }
+
+const bar = document.getElementById("redial-bar");
+const barMsg = document.getElementById("redial-msg");
+const redialNow = document.getElementById("redial-now");
+
+function showBar(message, active) {
+  bar.hidden = !message;
+  document.body.classList.toggle("has-bar", !!message);
+  barMsg.textContent = message;
+  redialNow.hidden = !active;
+  document.getElementById("redial-stop").textContent = active ? "停止" : "關閉";
+}
+
+function startRedial(entry) {
+  stopRedial();
+  redial = { entry, attempts: 0, leftAt: 0, timer: null };
+  dialNow();
+}
+
+function dialNow() {
+  if (!redial) return;
+  clearInterval(redial.timer);
+  redial.timer = null;
+  redial.attempts += 1;
+  redial.leftAt = 0;
+  const href = "tel:" + dialString(redial.entry);
+  redialNow.href = href;
+  showBar(`${redial.entry.name}：第 ${redial.attempts} 次撥號，請按「撥打」`, true);
+  location.href = href;
+}
+
+function stopRedial(message = "") {
+  if (redial) clearInterval(redial.timer);
+  redial = null;
+  showBar(message, false);
+}
+
+function countdown() {
+  let left = REDIAL_DELAY;
+  const tick = () => showBar(`已撥 ${redial.attempts} 次，${left} 秒後重撥`, true);
+  tick();
+  redial.timer = setInterval(() => {
+    left -= 1;
+    if (left <= 0) dialNow();
+    else tick();
+  }, 1000);
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!redial) return;
+  if (document.hidden) {
+    redial.leftAt = Date.now();
+    clearInterval(redial.timer);
+    return;
+  }
+  if (!redial.leftAt) return;
+  const minutes = (Date.now() - redial.leftAt) / 60000;
+  if (minutes >= CONNECTED_MINUTES) {
+    stopRedial(`上一通講了 ${Math.round(minutes)} 分鐘，應該已經接通，已停止重撥。`);
+  } else if (redial.attempts >= MAX_ATTEMPTS) {
+    stopRedial(`已經連續撥了 ${MAX_ATTEMPTS} 次，先停下來休息一下。`);
+  } else {
+    countdown();
+  }
+});
+
+redialNow.addEventListener("click", (e) => {
+  if (!redial) return;
+  e.preventDefault();
+  dialNow();
+});
+document.getElementById("redial-stop").addEventListener("click", () => stopRedial());
 
 render();
 </script>
