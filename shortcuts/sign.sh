@@ -11,4 +11,6 @@ for pair in "eva:長榮連續撥號"; do
   rm "$src.shortcut"
   echo "完成：$name"
 done
+curl -fsSL -o "長榮客服.vcf" "$BASE/eva-contact.vcf"
+echo "完成：長榮客服聯絡人"
 open "$OUT"
