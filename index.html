@@ -120,9 +120,9 @@
   <section class="card tips">
     <h2>連續重撥</h2>
     <ul>
-      <li>按「連續重撥」後，每次掛斷回到這個網頁，會試著馬上再撥一次。畫面最上方會一直顯示「立即重撥」和紅色的「停止重撥」。</li>
-      <li>iPhone 每次撥號前都會跳出確認視窗，要按一下「撥打」才會打出去，這一步沒辦法省略。沒有跳出視窗時，按下方的「立即重撥」。</li>
-      <li>按完鍵後聽到「目前無法接通」之類的語音，不用等對方掛斷，直接按通話畫面的紅色「結束」，回到網頁就會馬上再撥。</li>
+      <li>按「連續重撥」後，按「連續重撥」後，畫面最上方會一直顯示藍色「立即重撥」和紅色「停止重撥」，還會記錄撥了幾次。每次掛斷回到網頁，按「立即重撥」就會再打一次。</li>
+      <li>iPhone 不允許網頁自己撥號，每次撥號前也一定會跳出確認視窗，所以每一輪要按「立即重撥」和「撥打」兩下。</li>
+      <li>按完鍵後聽到「目前無法接通」之類的語音，不用等對方掛斷，直接按通話畫面的紅色「結束」，回到網頁按「立即重撥」。</li>
       <li>一通電話講超過 3 分鐘，就當作已經接通，不會再重撥。最多連續撥 50 次。</li>
     </ul>
   </section>
@@ -152,7 +152,7 @@
 <div class="redial-bar" id="redial-bar" hidden>
   <div class="redial-inner">
     <div class="redial-msg" id="redial-msg" role="status" aria-live="polite"></div>
-    <p class="redial-hint" id="redial-hint">沒有跳出撥號視窗時，按「立即重撥」。</p>
+    <p class="redial-hint" id="redial-hint">按「立即重撥」再打一次，接通真人就按「停止重撥」。</p>
     <div class="redial-actions">
       <a class="dial" id="redial-now" href="#">立即重撥</a>
       <button class="stop" type="button" id="redial-stop">停止重撥</button>
@@ -367,8 +367,8 @@ function onReturn() {
   } else if (redial.attempts >= MAX_ATTEMPTS) {
     stopRedial(`已經連續撥了 ${MAX_ATTEMPTS} 次，先停下來休息一下。`);
   } else {
-    // iPhone 可能擋下沒有手指點擊的撥號，所以「立即重撥」一直留在畫面上
-    dialNow();
+    // iPhone 不允許網頁在沒有點擊的情況下撥號，所以請使用者按「立即重撥」
+    showBar(`${entry.name}：第 ${redial.attempts} 次沒接通`, true);
   }
 }
 
