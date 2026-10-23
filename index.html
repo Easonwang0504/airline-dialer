@@ -118,8 +118,8 @@
   <section class="card tips">
     <h2>連續重撥</h2>
     <ul>
-      <li>按「連續重撥」後，每次掛斷回到這個網頁，會倒數 5 秒自動再撥一次，畫面下方可以隨時按「停止」。</li>
-      <li>iPhone 每次撥號前都會跳出確認視窗，要按一下「撥打」才會打出去，這一步沒辦法省略。</li>
+      <li>按「連續重撥」後，每次掛斷回到這個網頁，就會馬上再撥一次，畫面下方可以隨時按「停止」。</li>
+      <li>iPhone 每次撥號前都會跳出確認視窗，要按一下「撥打」才會打出去，這一步沒辦法省略。沒有跳出視窗時，按下方的「立即重撥」。</li>
       <li>一通電話講超過 3 分鐘，就當作已經接通，不會再重撥。最多連續撥 50 次。</li>
     </ul>
   </section>
@@ -281,7 +281,7 @@ document.getElementById("add-btn").addEventListener("click", () => {
 });
 
 // ---------- 連續重撥 ----------
-const REDIAL_DELAY = 5;        // 回到網頁後幾秒重撥
+const REDIAL_DELAY = 0;        // 回到網頁後幾秒重撥，0 代表馬上撥
 const CONNECTED_MINUTES = 3;   // 一通講超過幾分鐘就當作接通，不再重撥
 const MAX_ATTEMPTS = 50;
 let redial = null;             // { entry, attempts, leftAt, timer }
@@ -346,6 +346,8 @@ document.addEventListener("visibilitychange", () => {
     stopRedial(`上一通講了 ${Math.round(minutes)} 分鐘，應該已經接通，已停止重撥。`);
   } else if (redial.attempts >= MAX_ATTEMPTS) {
     stopRedial(`已經連續撥了 ${MAX_ATTEMPTS} 次，先停下來休息一下。`);
+  } else if (REDIAL_DELAY <= 0) {
+    dialNow();
   } else {
     countdown();
   }
