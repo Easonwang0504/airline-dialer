@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>客服快撥</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="客服快撥">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* 單欄、手機優先：每家客服一張卡，卡內是撥號鍵和按鍵步驟 */
+  :root {
+    --bg: #eef1f4;
+    --surface: #ffffff;
+    --ink: #17202b;
+    --muted: #5d6877;
+    --line: #d5dbe2;
+    --accent: #1f4f8f;
+    --accent-ink: #ffffff;
+    --soft: #e3eaf3;
+    --warn: #9a5b00;
+    --font-body: "Noto Sans TC", "PingFang TC", "Heiti TC", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161c; --surface: #1a2129; --ink: #e7ecf1; --muted: #95a1af; --line: #2c3540;
+      --accent: #7fb0f0; --accent-ink: #0d1520; --soft: #222c38; --warn: #e3a64a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161c; --surface: #1a2129; --ink: #e7ecf1; --muted: #95a1af; --line: #2c3540;
+    --accent: #7fb0f0; --accent-ink: #0d1520; --soft: #222c38; --warn: #e3a64a; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    margin: 0;
+  }
+  main { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  h1 { font-size: 24px; margin: 0; text-wrap: balance; }
+  .intro { color: var(--muted); margin: 4px 0 0; font-size: 15px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .name { font-size: 19px; font-weight: 700; }
+  .number { font-family: var(--font-mono); color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+  .dial { display: block; text-align: center; text-decoration: none; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 18px; padding: 14px; border-radius: 10px; }
+  .dial:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .readout { font-family: var(--font-mono); font-size: 14px; background: var(--soft); border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .readout code { overflow-wrap: anywhere; min-width: 0; user-select: all; }
+
+  .steps-label { font-size: 13px; color: var(--muted); letter-spacing: .04em; }
+  .steps { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .step { display: grid; grid-template-columns: auto 64px auto 56px auto; align-items: center; gap: 6px; font-size: 15px; }
+  .step input { width: 100%; padding: 6px 8px; font: inherit; font-family: var(--font-mono); text-align: center; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+  button { font: inherit; cursor: pointer; border-radius: 8px; }
+  .ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); padding: 6px 12px; font-size: 14px; }
+  .icon { background: transparent; border: 0; color: var(--muted); padding: 4px 8px; font-size: 18px; line-height: 1; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .warn { color: var(--warn); font-size: 13px; margin: 0; }
+
+  .add input { flex: 1 1 140px; min-width: 0; padding: 10px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .add .ghost { padding: 10px 14px; }
+
+  .tips h2 { font-size: 16px; margin: 0; }
+  .tips ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 15px; display: flex; flex-direction: column; gap: 6px; }
+  .note { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<main>
+  <header>
+    <h1>客服快撥</h1>
+    <p class="intro">按一下就撥號，並照你設定的順序自動按鍵，直接進到排隊等專人。</p>
+  </header>
+
+  <div id="list" class="list" style="display:flex;flex-direction:column;gap:16px"></div>
+
+  <section class="card add" aria-labelledby="add-title">
+    <div class="name" id="add-title">新增其他客服</div>
+    <div class="row">
+      <input id="new-name" placeholder="名稱，例如：信用卡客服">
+      <input id="new-number" type="tel" inputmode="tel" placeholder="電話，例如 0227151234">
+      <button class="ghost" id="add-btn">新增</button>
+    </div>
+    <p class="warn" id="add-error" hidden></p>
+  </section>
+
+  <section class="card tips">
+    <h2>使用說明</h2>
+    <ul>
+      <li>每個步驟是「撥通後等幾秒，再按哪個鍵」。秒數會換算成 iPhone 的暫停符號「,」，每個大約 2 秒，所以實際時間可能差一兩秒。</li>
+      <li>第一次先手動打一次，記下選單順序（例如國語按 1、訂位按 2），再回來修改步驟。</li>
+      <li>排隊時隨時會出現的「繼續等候請按 X」沒辦法事先設定，請開擴音放在旁邊，聽到時自己按。</li>
+      <li>iPhone 不允許網頁自動按「*」和「#」，遇到要按這兩個鍵的地方請手動按。</li>
+      <li>點了撥號沒反應時，按「複製」，到「電話」app 的鍵盤貼上撥號。</li>
+    </ul>
+    <p class="note">設定只存在這支手機的瀏覽器裡。電話號碼請以航空公司官網為準。</p>
+  </section>
+</main>
+
+<script>
+const DEFAULTS = [
+  { id: "ci", name: "中華航空", number: "024129000", steps: [{ wait: 8, key: "1" }] },
+  { id: "br", name: "長榮航空", number: "0225011999", steps: [{ wait: 8, key: "1" }] },
+];
+const KEY = "dialer.v2";
+const SECONDS_PER_PAUSE = 2;
+
+let entries = load();
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY));
+    if (Array.isArray(saved) && saved.length) return saved;
+  } catch (e) {}
+  return structuredClone(DEFAULTS);
+}
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(entries)); } catch (e) {}
+}
+
+function cleanNumber(n) { return String(n).replace(/[^0-9+]/g, ""); }
+
+function dialString(entry) {
+  let s = cleanNumber(entry.number);
+  for (const step of entry.steps) {
+    const key = String(step.key).replace(/[^0-9]/g, "");
+    if (!key) continue;
+    const pauses = Math.max(1, Math.round((Number(step.wait) || 0) / SECONDS_PER_PAUSE));
+    s += ",".repeat(pauses) + key;
+  }
+  return s;
+}
+
+function formatNumber(n) {
+  const d = cleanNumber(n);
+  if (/^02\d{8}$/.test(d)) return `(02) ${d.slice(2, 6)}-${d.slice(6)}`;
+  if (/^02\d{7}$/.test(d)) return `(02) ${d.slice(2, 5)}-${d.slice(5)}`;
+  return d;
+}
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else if (k === "text") node.textContent = v;
+    else node.setAttribute(k, v);
+  }
+  node.append(...children);
+  return node;
+}
+
+function render() {
+  const list = document.getElementById("list");
+  list.replaceChildren(...entries.map(renderEntry));
+}
+
+function renderEntry(entry, index) {
+  const str = dialString(entry);
+  const code = el("code", { text: str });
+  const dial = el("a", { class: "dial", href: "tel:" + str, text: "撥號" });
+
+  const refresh = () => {
+    const s = dialString(entry);
+    code.textContent = s;
+    dial.href = "tel:" + s;
+    save();
+  };
+
+  const copyBtn = el("button", { class: "ghost", type: "button", text: "複製", onclick: async () => {
+    try { await navigator.clipboard.writeText(dialString(entry)); copyBtn.textContent = "已複製"; }
+    catch (e) {
+      const range = document.createRange(); range.selectNodeContents(code);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      copyBtn.textContent = "已選取";
+    }
+    setTimeout(() => (copyBtn.textContent = "複製"), 1500);
+  } });
+
+  const steps = el("ol", { class: "steps" });
+  entry.steps.forEach((step, i) => {
+    const wait = el("input", { id: `${entry.id}-wait-${i}`, type: "number", inputmode: "numeric", min: "1", max: "60", value: step.wait, "aria-label": "等幾秒" });
+    const key = el("input", { id: `${entry.id}-key-${i}`, inputmode: "numeric", maxlength: "4", value: step.key, "aria-label": "按哪個鍵" });
+    wait.addEventListener("input", () => { step.wait = Number(wait.value) || 1; refresh(); });
+    key.addEventListener("input", () => { step.key = key.value.replace(/[^0-9]/g, ""); key.value = step.key; refresh(); });
+    const remove = el("button", { class: "icon", type: "button", "aria-label": "刪除這個步驟", text: "×", onclick: () => { entry.steps.splice(i, 1); save(); render(); } });
+    steps.append(el("li", { class: "step" }, el("span", { text: "等" }), wait, el("span", { text: "秒按" }), key, remove));
+  });
+
+  const actions = el("div", { class: "row" },
+    el("button", { class: "ghost", type: "button", text: "＋ 新增步驟", onclick: () => { entry.steps.push({ wait: 6, key: "" }); save(); render(); } }),
+  );
+  if (!DEFAULTS.some((d) => d.id === entry.id)) {
+    actions.append(el("button", { class: "ghost", type: "button", text: "刪除這組", onclick: () => { entries.splice(index, 1); save(); render(); } }));
+  }
+
+  return el("section", { class: "card" },
+    el("div", { class: "head" }, el("span", { class: "name", text: entry.name }), el("span", { class: "number", text: formatNumber(entry.number) })),
+    dial,
+    el("div", { class: "readout" }, code, copyBtn),
+    el("div", { class: "steps-label", text: "接通後自動按鍵" }),
+    entry.steps.length ? steps : el("p", { class: "note", text: "目前沒有設定步驟，撥通後由你自己按。" }),
+    actions,
+  );
+}
+
+document.getElementById("add-btn").addEventListener("click", () => {
+  const name = document.getElementById("new-name");
+  const number = document.getElementById("new-number");
+  const error = document.getElementById("add-error");
+  const digits = cleanNumber(number.value);
+  if (!name.value.trim() || digits.length < 6) {
+    error.textContent = "請填寫名稱和完整的電話號碼。";
+    error.hidden = false;
+    return;
+  }
+  error.hidden = true;
+  entries.push({ id: "c" + Date.now(), name: name.value.trim(), number: digits, steps: [] });
+  name.value = ""; number.value = "";
+  save(); render();
+});
+
+render();
+</script>
+
+</body>
+</html>
